@@ -15,6 +15,7 @@ class OmniauthTwitchtvTest < Minitest::Test
     assert_equal 'https://api.twitch.tv', client_options.site
     assert_equal 'https://id.twitch.tv/oauth2/authorize', client_options.authorize_url
     assert_equal 'https://id.twitch.tv/oauth2/token', client_options.token_url
+    assert_equal :request_body, client_options.auth_scheme
   end
 
   def test_uid_info_and_extra_are_derived_from_raw_info

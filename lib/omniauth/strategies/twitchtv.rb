@@ -12,6 +12,7 @@ module OmniAuth
              site: 'https://api.twitch.tv',
              authorize_url: 'https://id.twitch.tv/oauth2/authorize',
              token_url: 'https://id.twitch.tv/oauth2/token',
+             auth_scheme: :request_body,
              connection_opts: {
                headers: {
                  user_agent: 'icoretech-omniauth-twitchtv2 gem',
