@@ -32,6 +32,17 @@ Rails.application.config.middleware.use OmniAuth::Builder do
 end
 ```
 
+## Provider App Setup
+
+- Twitch developer console: <https://dev.twitch.tv/console/apps>
+- OAuth docs: <https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/>
+- Register callback URL (example): `https://your-app.example.com/auth/twitchtv/callback`
+
+## Options
+
+- `scope` (for example `user:read:email`)
+- `force_verify`
+
 ## Auth Hash
 
 Example payload from `request.env['omniauth.auth']` (realistic shape, anonymized):
@@ -53,7 +64,8 @@ Example payload from `request.env['omniauth.auth']` (realistic shape, anonymized
     "token": "sample-access-token",
     "refresh_token": "sample-refresh-token",
     "expires_at": 1710000000,
-    "expires": true
+    "expires": true,
+    "scope": "user:read:email"
   },
   "extra": {
     "raw_info": {
@@ -88,6 +100,12 @@ Run Rails integration tests with an explicit Rails version:
 RAILS_VERSION='~> 8.1.0' bundle install
 RAILS_VERSION='~> 8.1.0' bundle exec rake test_rails_integration
 ```
+
+## Test Structure
+
+- `test/omniauth_twitchtv_test.rb`: strategy/unit behavior
+- `test/rails_integration_test.rb`: full Rack/Rails request+callback flow
+- `test/test_helper.rb`: shared test bootstrap
 
 ## Compatibility
 

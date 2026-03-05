@@ -17,7 +17,8 @@ class RailsIntegrationSessionsController < ActionController::Base
     render json: {
       uid: auth['uid'],
       name: auth.dig('info', 'name'),
-      email: auth.dig('info', 'email')
+      email: auth.dig('info', 'email'),
+      credentials: auth['credentials']
     }
   end
 
@@ -100,6 +101,10 @@ class RailsIntegrationTest < Minitest::Test
     assert_equal '12345678', payload['uid']
     assert_equal 'Sample User', payload['name']
     assert_equal 'sample@example.test', payload['email']
+    assert_equal 'access-token', payload.dig('credentials', 'token')
+    assert_equal 'refresh-token', payload.dig('credentials', 'refresh_token')
+    assert_equal 'user:read:email', payload.dig('credentials', 'scope')
+    assert(payload.dig('credentials', 'expires'))
 
     assert_requested :post, 'https://id.twitch.tv/oauth2/token', times: 1
     assert_requested :get, 'https://api.twitch.tv/helix/users', times: 1
@@ -114,6 +119,7 @@ class RailsIntegrationTest < Minitest::Test
       body: {
         access_token: 'access-token',
         refresh_token: 'refresh-token',
+        scope: 'user:read:email',
         token_type: 'bearer',
         expires_in: 3600
       }.to_json

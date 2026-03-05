@@ -92,6 +92,29 @@ class OmniauthTwitchtvTest < Minitest::Test
     assert_equal({ headers: { 'Client-Id' => 'client-id' } }, token.calls.first[:options])
   end
 
+  def test_credentials_include_refresh_token_even_when_token_does_not_expire
+    strategy = build_strategy
+    token = FakeCredentialAccessToken.new(
+      token: 'access-token',
+      refresh_token: 'refresh-token',
+      expires_at: nil,
+      expires: false,
+      params: { 'scope' => 'user:read:email' }
+    )
+
+    strategy.define_singleton_method(:access_token) { token }
+
+    assert_equal(
+      {
+        'token' => 'access-token',
+        'refresh_token' => 'refresh-token',
+        'expires' => false,
+        'scope' => 'user:read:email'
+      },
+      strategy.credentials
+    )
+  end
+
   def test_callback_url_prefers_configured_value
     strategy = build_strategy
     callback = 'https://example.test/auth/twitchtv/callback'
@@ -148,6 +171,26 @@ class OmniauthTwitchtvTest < Minitest::Test
     def get(path, options = {})
       @calls << { path: path, options: options }
       Struct.new(:parsed).new(@parsed_payload)
+    end
+  end
+
+  class FakeCredentialAccessToken
+    attr_reader :token, :refresh_token, :expires_at, :params
+
+    def initialize(token:, refresh_token:, expires_at:, expires:, params:)
+      @token = token
+      @refresh_token = refresh_token
+      @expires_at = expires_at
+      @expires = expires
+      @params = params
+    end
+
+    def expires?
+      @expires
+    end
+
+    def [](key)
+      { 'scope' => @params['scope'] }[key]
     end
   end
 end

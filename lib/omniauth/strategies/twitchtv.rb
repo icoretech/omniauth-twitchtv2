@@ -36,6 +36,16 @@ module OmniAuth
         }.compact
       end
 
+      credentials do
+        {
+          'token' => access_token.token,
+          'refresh_token' => access_token.refresh_token,
+          'expires_at' => access_token.expires_at,
+          'expires' => access_token.expires?,
+          'scope' => token_scope
+        }.compact
+      end
+
       extra do
         {
           'raw_info' => raw_info
@@ -70,6 +80,11 @@ module OmniAuth
       end
 
       private
+
+      def token_scope
+        token_params = access_token.respond_to?(:params) ? access_token.params : {}
+        token_params['scope'] || (access_token['scope'] if access_token.respond_to?(:[]))
+      end
 
       def blank_to_nil(value)
         return nil if value.respond_to?(:empty?) && value.empty?
