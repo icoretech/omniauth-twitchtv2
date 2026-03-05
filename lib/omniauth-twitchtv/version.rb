@@ -1,6 +1,9 @@
 # frozen_string_literal: true
+
+require 'omniauth-twitchtv2/version'
+
 module Omniauth
   module Twitchtv
-    VERSION = '1.0.0'
+    VERSION = OmniAuth::Twitchtv2::VERSION unless const_defined?(:VERSION)
   end
 end

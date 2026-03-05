@@ -1,107 +1,83 @@
+# frozen_string_literal: true
+
 require 'omniauth-oauth2'
-require 'rest-client'
 
 module OmniAuth
   module Strategies
+    # OmniAuth strategy for Twitch OAuth2.
     class Twitchtv < OmniAuth::Strategies::OAuth2
-      class NoAuthorizationCodeError < StandardError; end
+      option :name, 'twitchtv'
 
-      option :client_options, site: 'https://api.twitch.tv',
-                              authorize_url: 'https://api.twitch.tv/kraken/oauth2/authorize',
-                              token_url: 'https://api.twitch.tv/kraken/oauth2/token'
+      option :client_options,
+             site: 'https://api.twitch.tv',
+             authorize_url: 'https://id.twitch.tv/oauth2/authorize',
+             token_url: 'https://id.twitch.tv/oauth2/token',
+             connection_opts: {
+               headers: {
+                 user_agent: 'icoretech-omniauth-twitchtv2 gem',
+                 accept: 'application/json',
+                 content_type: 'application/json'
+               }
+             }
 
-      option :authorize_params, {}
-      option :authorize_options, [:scope, :response_type]
-      option :response_type, 'code'
+      option :authorize_options, %i[scope force_verify]
 
-      uid { raw_info['_id'] }
+      uid { raw_info['id'].to_s }
 
       info do
-        prune!(name: raw_info['name'],
-               nickname: raw_info['display_name'],
-               email: raw_info['email'],
-               image: raw_info['logo'],
-               description: raw_info['bio'],
-               urls: {
-                 twitchtv: profile_url
-               })
-      end
-
-      credentials do
-        prune!(token: access_token.token, secret: access_token.client.secret)
+        {
+          name: raw_info['display_name'] || raw_info['login'],
+          nickname: raw_info['login'],
+          email: raw_info['email'],
+          image: raw_info['profile_image_url'],
+          description: blank_to_nil(raw_info['description']),
+          urls: profile_url ? { twitchtv: profile_url } : nil
+        }.compact
       end
 
       extra do
-        { raw_info: raw_info }
-      end
-
-      def request_phase
-        super
-      end
-
-      def callback_phase
-        super
-      rescue NoAuthorizationCodeError => e
-        fail!(:no_authorization_code, e)
+        {
+          'raw_info' => raw_info
+        }
       end
 
       def raw_info
-        get_hash_from_channel = lambda do |token, client_id|
-          response = RestClient.get(
-            info_url,
-            'Client-ID' => client_id,
-            'Accept' => 'application/vnd.twitchtv.v5+json',
-            'Authorization' => "OAuth #{token}"
-          )
-
-          if response.code.to_i != 200
-            raise Omniauth::Twitchtv::TwitchtvError, 'Failed to get user details from Twitch.TV'
-          end
-          response
+        @raw_info ||= begin
+          response = access_token.get('helix/users', headers: { 'Client-Id' => options.client_id })
+          users = response.parsed.fetch('data', [])
+          users.first || {}
         end
-
-        @raw_info ||= JSON.parse(get_hash_from_channel.call(access_token.token, options.client_id).body)
-      end
-
-      def info_url
-        unless options.scope && (options.scope.index('user_read') || options.scope.index(:user_read)) ||
-            options.scope && (options.scope.index('user_read') || options.scope.index(:user_read)) ||
-            options.scope.to_sym == :user_read || options.scope.to_sym == :channel_read
-          raise Omniauth::Twitchtv::TwitchtvError, 'You must include at least either the channel or user read scope in omniauth-twitchtv initializer.'
-        end
-        'https://api.twitch.tv/kraken/user'
       end
 
       def profile_url
-        username = raw_info['name']
-        "https://www.twitch.tv/#{username}/profile"
+        login = raw_info['login']
+        return nil if login.to_s.empty?
+
+        "https://www.twitch.tv/#{login}"
       end
 
-      def prune!(hash)
-        hash.delete_if do |_, value|
-          prune!(value) if value.is_a?(Hash)
-          value.nil? || (value.respond_to?(:empty?) && value.empty?)
-        end
-      end
-
+      # Ensure token exchange uses a stable callback URI that matches provider config.
       def callback_url
-        # If redirect_uri is configured in token_params, use that
-        # value.
-        token_params.to_hash(symbolize_keys: true)[:redirect_uri] || super
+        options[:callback_url] || super
       end
 
+      # Prevent authorization response params from being appended to redirect_uri.
       def query_string
-        # This method is called by callback_url, only if redirect_uri
-        # is omitted in token_params.
-        if request.params['code']
-          # If this is a callback, ignore query parameters added by
-          # the provider.
-          ''
-        else
-          super
-        end
+        return '' if request.params['code']
+
+        super
+      end
+
+      private
+
+      def blank_to_nil(value)
+        return nil if value.respond_to?(:empty?) && value.empty?
+
+        value
       end
     end
+
+    Twitchtv2 = Twitchtv
   end
 end
 

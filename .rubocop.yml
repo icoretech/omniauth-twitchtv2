@@ -1,0 +1,43 @@
+plugins:
+  - rubocop-minitest
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'lib/omniauth-twitchtv.rb'
+    - 'tmp/**/*'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'test/**/*'
+
+Metrics/ClassLength:
+  Exclude:
+    - 'lib/omniauth/strategies/twitchtv.rb'
+    - 'test/rails_integration_test.rb'
+    - 'test/omniauth_twitchtv_test.rb'
+
+Metrics/MethodLength:
+  Exclude:
+    - 'test/**/*'
+
+Style/OneClassPerFile:
+  Exclude:
+    - 'test/rails_integration_test.rb'
+
+Style/Documentation:
+  Exclude:
+    - 'lib/omniauth-twitchtv/version.rb'
+    - 'lib/omniauth-twitchtv2/version.rb'
+    - 'test/**/*'
+
+Naming/FileName:
+  Exclude:
+    - 'lib/omniauth-twitchtv2.rb'
+
+Minitest/MultipleAssertions:
+  Exclude:
+    - 'test/rails_integration_test.rb'
+    - 'test/omniauth_twitchtv_test.rb'
