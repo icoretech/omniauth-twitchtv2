@@ -1,67 +1,67 @@
 # frozen_string_literal: true
 
-require_relative 'test_helper'
+require_relative "test_helper"
 
-require 'uri'
+require "uri"
 
 class OmniauthTwitchtvTest < Minitest::Test
   def build_strategy
-    OmniAuth::Strategies::Twitchtv.new(nil, 'client-id', 'client-secret')
+    OmniAuth::Strategies::Twitchtv.new(nil, "client-id", "client-secret")
   end
 
   def test_uses_current_twitch_endpoints
     client_options = build_strategy.options.client_options
 
-    assert_equal 'https://api.twitch.tv', client_options.site
-    assert_equal 'https://id.twitch.tv/oauth2/authorize', client_options.authorize_url
-    assert_equal 'https://id.twitch.tv/oauth2/token', client_options.token_url
+    assert_equal "https://api.twitch.tv", client_options.site
+    assert_equal "https://id.twitch.tv/oauth2/authorize", client_options.authorize_url
+    assert_equal "https://id.twitch.tv/oauth2/token", client_options.token_url
     assert_equal :request_body, client_options.auth_scheme
   end
 
   def test_uid_info_and_extra_are_derived_from_raw_info
     strategy = build_strategy
     payload = {
-      'id' => '12345678',
-      'login' => 'sample_user',
-      'display_name' => 'Sample User',
-      'email' => 'sample@example.test',
-      'profile_image_url' => 'https://example.test/avatar.png',
-      'description' => 'Streaming something cool'
+      "id" => "12345678",
+      "login" => "sample_user",
+      "display_name" => "Sample User",
+      "email" => "sample@example.test",
+      "profile_image_url" => "https://example.test/avatar.png",
+      "description" => "Streaming something cool"
     }
 
     strategy.instance_variable_set(:@raw_info, payload)
 
-    assert_equal '12345678', strategy.uid
+    assert_equal "12345678", strategy.uid
     assert_equal(
       {
-        name: 'Sample User',
-        nickname: 'sample_user',
-        email: 'sample@example.test',
-        image: 'https://example.test/avatar.png',
-        description: 'Streaming something cool',
-        urls: { twitchtv: 'https://www.twitch.tv/sample_user' }
+        name: "Sample User",
+        nickname: "sample_user",
+        email: "sample@example.test",
+        image: "https://example.test/avatar.png",
+        description: "Streaming something cool",
+        urls: {twitchtv: "https://www.twitch.tv/sample_user"}
       },
       strategy.info
     )
-    assert_equal({ 'raw_info' => payload }, strategy.extra)
+    assert_equal({"raw_info" => payload}, strategy.extra)
   end
 
   def test_info_handles_sparse_payload_without_optional_fields
     strategy = build_strategy
     payload = {
-      'id' => '12345678',
-      'login' => 'sample_user',
-      'display_name' => 'sample_user',
-      'description' => ''
+      "id" => "12345678",
+      "login" => "sample_user",
+      "display_name" => "sample_user",
+      "description" => ""
     }
 
     strategy.instance_variable_set(:@raw_info, payload)
 
     assert_equal(
       {
-        name: 'sample_user',
-        nickname: 'sample_user',
-        urls: { twitchtv: 'https://www.twitch.tv/sample_user' }
+        name: "sample_user",
+        nickname: "sample_user",
+        urls: {twitchtv: "https://www.twitch.tv/sample_user"}
       },
       strategy.info
     )
@@ -71,10 +71,10 @@ class OmniauthTwitchtvTest < Minitest::Test
     strategy = build_strategy
     token = FakeAccessToken.new(
       {
-        'data' => [
+        "data" => [
           {
-            'id' => '12345678',
-            'login' => 'sample_user'
+            "id" => "12345678",
+            "login" => "sample_user"
           }
         ]
       }
@@ -85,31 +85,31 @@ class OmniauthTwitchtvTest < Minitest::Test
     first_call = strategy.raw_info
     second_call = strategy.raw_info
 
-    assert_equal({ 'id' => '12345678', 'login' => 'sample_user' }, first_call)
+    assert_equal({"id" => "12345678", "login" => "sample_user"}, first_call)
     assert_same first_call, second_call
     assert_equal 1, token.calls.length
-    assert_equal 'helix/users', token.calls.first[:path]
-    assert_equal({ headers: { 'Client-Id' => 'client-id' } }, token.calls.first[:options])
+    assert_equal "helix/users", token.calls.first[:path]
+    assert_equal({headers: {"Client-Id" => "client-id"}}, token.calls.first[:options])
   end
 
   def test_credentials_include_refresh_token_even_when_token_does_not_expire
     strategy = build_strategy
     token = FakeCredentialAccessToken.new(
-      token: 'access-token',
-      refresh_token: 'refresh-token',
+      token: "access-token",
+      refresh_token: "refresh-token",
       expires_at: nil,
       expires: false,
-      params: { 'scope' => 'user:read:email' }
+      params: {"scope" => "user:read:email"}
     )
 
     strategy.define_singleton_method(:access_token) { token }
 
     assert_equal(
       {
-        'token' => 'access-token',
-        'refresh_token' => 'refresh-token',
-        'expires' => false,
-        'scope' => 'user:read:email'
+        "token" => "access-token",
+        "refresh_token" => "refresh-token",
+        "expires" => false,
+        "scope" => "user:read:email"
       },
       strategy.credentials
     )
@@ -117,7 +117,7 @@ class OmniauthTwitchtvTest < Minitest::Test
 
   def test_callback_url_prefers_configured_value
     strategy = build_strategy
-    callback = 'https://example.test/auth/twitchtv/callback'
+    callback = "https://example.test/auth/twitchtv/callback"
     strategy.options[:callback_url] = callback
 
     assert_equal callback, strategy.callback_url
@@ -127,37 +127,37 @@ class OmniauthTwitchtvTest < Minitest::Test
     previous_request_validation_phase = OmniAuth.config.request_validation_phase
     OmniAuth.config.request_validation_phase = nil
 
-    app = ->(_env) { [404, { 'Content-Type' => 'text/plain' }, ['not found']] }
-    strategy = OmniAuth::Strategies::Twitchtv.new(app, 'client-id', 'client-secret')
-    env = Rack::MockRequest.env_for('/auth/twitchtv', method: 'POST')
-    env['rack.session'] = {}
+    app = ->(_env) { [404, {"Content-Type" => "text/plain"}, ["not found"]] }
+    strategy = OmniAuth::Strategies::Twitchtv.new(app, "client-id", "client-secret")
+    env = Rack::MockRequest.env_for("/auth/twitchtv", method: "POST")
+    env["rack.session"] = {}
 
     status, headers, = strategy.call(env)
 
     assert_equal 302, status
-    location = URI.parse(headers['Location'])
+    location = URI.parse(headers["Location"])
     params = URI.decode_www_form(location.query).to_h
 
-    assert_equal 'id.twitch.tv', location.host
-    assert_equal 'client-id', params.fetch('client_id')
+    assert_equal "id.twitch.tv", location.host
+    assert_equal "client-id", params.fetch("client_id")
   ensure
     OmniAuth.config.request_validation_phase = previous_request_validation_phase
   end
 
   def test_query_string_is_ignored_during_callback_request
     strategy = build_strategy
-    request = Rack::Request.new(Rack::MockRequest.env_for('/auth/twitchtv/callback?code=abc&state=xyz'))
+    request = Rack::Request.new(Rack::MockRequest.env_for("/auth/twitchtv/callback?code=abc&state=xyz"))
     strategy.define_singleton_method(:request) { request }
 
-    assert_equal '', strategy.query_string
+    assert_equal "", strategy.query_string
   end
 
   def test_query_string_is_kept_for_non_callback_requests
     strategy = build_strategy
-    request = Rack::Request.new(Rack::MockRequest.env_for('/auth/twitchtv?force_verify=true'))
+    request = Rack::Request.new(Rack::MockRequest.env_for("/auth/twitchtv?force_verify=true"))
     strategy.define_singleton_method(:request) { request }
 
-    assert_equal '?force_verify=true', strategy.query_string
+    assert_equal "?force_verify=true", strategy.query_string
   end
 
   class FakeAccessToken
@@ -169,7 +169,7 @@ class OmniauthTwitchtvTest < Minitest::Test
     end
 
     def get(path, options = {})
-      @calls << { path: path, options: options }
+      @calls << {path: path, options: options}
       Struct.new(:parsed).new(@parsed_payload)
     end
   end
@@ -190,7 +190,7 @@ class OmniauthTwitchtvTest < Minitest::Test
     end
 
     def [](key)
-      { 'scope' => @params['scope'] }[key]
+      {"scope" => @params["scope"]}[key]
     end
   end
 end
